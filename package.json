@@ -1,0 +1,87 @@
+{
+  "name": "react-wanderer",
+  "version": "1.0.0",
+  "description": "A React component that creates an animated object that moves randomly within its parent container, bounces off walls, and flees from mouse interactions with realistic physics",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "react",
+    "component",
+    "wanderer",
+    "animated",
+    "mouse",
+    "interaction",
+    "typescript"
+  ],
+  "author": "Mauc",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tmauc/react-wanderer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tmauc/react-wanderer/issues"
+  },
+  "homepage": "https://github.com/tmauc/react-wanderer#readme",
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.29.0",
+    "@tailwindcss/postcss": "^4.1.10",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.5.2",
+    "@vitest/ui": "^3.2.4",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.29.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.2.0",
+    "jsdom": "^26.1.0",
+    "postcss": "^8.5.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.10",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.34.1",
+    "vite": "^7.0.0",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:lib": "vite build --config vite.lib.config.mjs",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build:lib",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:utils": "vitest run src/utils/__tests__/",
+    "test:hooks": "vitest run src/hooks/__tests__/",
+    "test:components": "vitest run src/components/__tests__/"
+  },
+  "dependencies": {
+    "@types/prismjs": "^1.26.5",
+    "prismjs": "^1.30.0"
+  }
+}
