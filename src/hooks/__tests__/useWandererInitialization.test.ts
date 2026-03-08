@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
+import React from "react";
 import { useWandererInitialization } from "../useWandererInitialization";
 import * as physics from "../../utils/physics";
 import * as boundary from "../../utils/boundary";
 
-// Mock des modules utilitaires
+// Mock utility modules
 vi.mock("../../utils/physics", () => ({
   getRandomVelocity: vi.fn(() => ({ dx: 2, dy: 1 })),
 }));
@@ -20,13 +21,11 @@ describe("useWandererInitialization", () => {
   let mockWandererRef: React.RefObject<HTMLImageElement>;
 
   beforeEach(() => {
-    // Mock des éléments DOM
     mockParent = document.createElement("div");
     mockWanderer = document.createElement("img");
     mockParentRef = { current: mockParent };
     mockWandererRef = { current: mockWanderer };
 
-    // Mock des propriétés
     Object.defineProperty(mockParent, "clientWidth", { value: 800 });
     Object.defineProperty(mockParent, "clientHeight", { value: 600 });
   });
@@ -43,7 +42,7 @@ describe("useWandererInitialization", () => {
     startPosition: "center" as const,
     baseSpeed: 3,
     speedVariation: 0.5,
-    initialized: false,
+    initializedRef: { current: false } as React.RefObject<boolean>,
     updatePosition: vi.fn(),
     updateVelocity: vi.fn(),
     setInitialized: vi.fn(),
@@ -65,7 +64,7 @@ describe("useWandererInitialization", () => {
 
   it("should not initialize when already initialized", () => {
     const config = createMockConfig({
-      initialized: true,
+      initializedRef: { current: true } as React.RefObject<boolean>,
     });
 
     renderHook(() => useWandererInitialization(config));
@@ -189,7 +188,6 @@ describe("useWandererInitialization", () => {
 
     renderHook(() => useWandererInitialization(config));
 
-    // Should still call state updates but not DOM updates
     expect(config.updatePosition).toHaveBeenCalled();
     expect(config.updateVelocity).toHaveBeenCalled();
     expect(config.setInitialized).toHaveBeenCalled();
@@ -213,10 +211,10 @@ describe("useWandererInitialization", () => {
     renderHook(() => useWandererInitialization(config));
 
     expect(mockGetRandomVelocity).toHaveBeenCalledWith(
-      5, // baseSpeed
-      0.8, // speedVariation
-      undefined, // angle aléatoire
-      false // enableRandomSpeed
+      5,
+      0.8,
+      undefined,
+      false
     );
   });
 
@@ -238,10 +236,10 @@ describe("useWandererInitialization", () => {
     renderHook(() => useWandererInitialization(config));
 
     expect(mockGetRandomVelocity).toHaveBeenCalledWith(
-      10, // baseSpeed
-      0.2, // speedVariation
-      undefined, // angle aléatoire
-      true // enableRandomSpeed
+      10,
+      0.2,
+      undefined,
+      true
     );
   });
 
@@ -262,10 +260,10 @@ describe("useWandererInitialization", () => {
     renderHook(() => useWandererInitialization(config));
 
     expect(mockGetRandomVelocity).toHaveBeenCalledWith(
-      0, // baseSpeed
-      0, // speedVariation
-      undefined, // angle aléatoire
-      true // enableRandomSpeed
+      0,
+      0,
+      undefined,
+      true
     );
     expect(config.updateVelocity).toHaveBeenCalledWith({ dx: 0, dy: 0 });
   });
@@ -335,13 +333,10 @@ describe("useWandererInitialization", () => {
 
     const { rerender } = renderHook(() => useWandererInitialization(config));
 
-    // Première initialisation
     expect(config.setInitialized).toHaveBeenCalledTimes(1);
 
-    // Re-render avec la même config
     rerender();
 
-    // Ne devrait pas être appelé à nouveau
     expect(config.setInitialized).toHaveBeenCalledTimes(1);
   });
 });

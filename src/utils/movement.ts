@@ -1,14 +1,7 @@
-import type { Velocity } from "./physics";
+import type { Velocity } from "../types";
 import { getRandomVelocity } from "./physics";
 
-export interface MovementConfig {
-  baseSpeed?: number;
-  speedVariation?: number;
-  speedChangeFrequency?: number;
-  enableRandomSpeed?: boolean;
-}
-
-// Change la vitesse de base aléatoirement
+// Randomly change speed magnitude and direction
 export const changeSpeed = (
   currentVelocity: Velocity,
   baseSpeed: number,
@@ -30,12 +23,12 @@ export const changeSpeed = (
   );
 };
 
-// Vérifie si un changement de vitesse doit avoir lieu
+// Check if a speed change should occur (probabilistic)
 export const shouldChangeSpeed = (speedChangeFrequency: number): boolean => {
   return Math.random() < speedChangeFrequency;
 };
 
-// Applique les effets physiques au mouvement
+// Apply physics effects (gravity + friction) to velocity
 export const applyPhysics = (
   velocity: Velocity,
   enableGravity: boolean,
@@ -45,12 +38,10 @@ export const applyPhysics = (
 ): Velocity => {
   const newVelocity = { ...velocity };
 
-  // Application de la gravité
   if (enableGravity) {
     newVelocity.dy += gravityStrength;
   }
 
-  // Application de la friction
   if (enableFriction) {
     newVelocity.dx *= frictionCoefficient;
     newVelocity.dy *= frictionCoefficient;

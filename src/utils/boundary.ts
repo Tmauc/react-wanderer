@@ -1,13 +1,8 @@
-import type { Velocity } from "./physics";
+import type { Velocity, BoundaryResult } from "../types";
 
-export interface BoundaryResult {
-  position: { x: number; y: number };
-  velocity: Velocity;
-  rebounded: boolean;
-  angle?: number;
-}
+export type { BoundaryResult } from "../types";
 
-// Gère les comportements aux bords selon la configuration
+// Handle boundary collision behavior
 export const handleBoundaryCollision = (
   x: number,
   y: number,
@@ -78,7 +73,7 @@ export const handleBoundaryCollision = (
   };
 };
 
-// Calcule la position de départ selon la configuration
+// Calculate start position based on configuration
 export const calculateStartPosition = (
   startPosition: "random" | "center" | { x: number; y: number },
   parentWidth: number,
@@ -104,7 +99,6 @@ export const calculateStartPosition = (
     }
 
     default:
-      // Position personnalisée
       return startPosition;
   }
 };

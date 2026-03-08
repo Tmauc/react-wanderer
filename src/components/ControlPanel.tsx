@@ -411,18 +411,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               "advanced",
               "enablePerformanceMode",
               "Mode performance",
-              "Optimise les performances"
-            )}
-            {createSelect(
-              "advanced",
-              "collisionDetection",
-              "Détection de collision",
-              [
-                { value: "mouse", label: "Souris uniquement" },
-                { value: "elements", label: "Éléments uniquement" },
-                { value: "both", label: "Souris et éléments" },
-              ],
-              "Type de détection de collision"
+              "Optimise les performances (skip every other frame)"
             )}
           </div>
         );

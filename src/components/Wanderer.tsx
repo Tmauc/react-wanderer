@@ -1,7 +1,6 @@
 import React, { useRef } from "react";
-
-// Import des utilitaires
-import { generateAnimationStyles } from "../utils/animation";
+import type { WandererProps } from "../types";
+import { generateAnimationStyles, injectSpinKeyframe } from "../utils/animation";
 import {
   defaultMovement,
   defaultMouseInteraction,
@@ -12,96 +11,26 @@ import {
   defaultAdvanced,
   defaultCallbacks,
 } from "../utils/defaults";
-
-// Import des hooks
 import { useWandererState } from "../hooks/useWandererState";
 import { useWandererInitialization } from "../hooks/useWandererInitialization";
 import { useWandererEvents } from "../hooks/useWandererEvents";
 import { useWandererAnimation } from "../hooks/useWandererAnimation";
 
-// Interfaces pour les configurations
-export interface MovementConfig {
-  baseSpeed?: number;
-  speedVariation?: number;
-  speedChangeFrequency?: number;
-  enableRandomSpeed?: boolean;
-}
+// Re-export types for backward compatibility
+export type {
+  WandererProps,
+  MovementConfig,
+  MouseInteractionConfig,
+  AnimationConfig,
+  BounceConfig,
+  VisualConfig,
+  BehaviorConfig,
+  AdvancedConfig,
+  Callbacks,
+} from "../types";
 
-export interface MouseInteractionConfig {
-  enabled?: boolean;
-  detectionDistance?: number;
-  safetyZone?: number;
-  escapeSpeedMultiplier?: number;
-  escapeAngleVariation?: number;
-  throttleDelay?: number;
-}
-
-export interface AnimationConfig {
-  enableRotation?: boolean;
-  rotationDurations?: number[];
-  rotationChangeFrequency?: number;
-  enableSpinVariation?: boolean;
-}
-
-export interface BounceConfig {
-  enabled?: boolean;
-  bounceAngleVariation?: number;
-  enableRandomBounce?: boolean;
-}
-
-export interface VisualConfig {
-  className?: string;
-  style?: React.CSSProperties;
-  enableHoverEffects?: boolean;
-  hoverScale?: number;
-  transitionDuration?: number;
-}
-
-export interface BehaviorConfig {
-  startPosition?: "random" | "center" | { x: number; y: number };
-  boundaryBehavior?: "bounce" | "wrap" | "stop" | "reverse";
-  enableGravity?: boolean;
-  gravityStrength?: number;
-  enableFriction?: boolean;
-  frictionCoefficient?: number;
-}
-
-export interface AdvancedConfig {
-  animationFrameRate?: number;
-  enableDebug?: boolean;
-  enablePerformanceMode?: boolean;
-  collisionDetection?: "mouse" | "elements" | "both";
-  customCollisionElements?: HTMLElement[];
-}
-
-export interface Callbacks {
-  onCollision?: (type: "wall" | "mouse" | "element") => void;
-  onSpeedChange?: (newSpeed: number) => void;
-  onPositionChange?: (x: number, y: number) => void;
-  onAnimationComplete?: () => void;
-}
-
-// Interface principale étendue
-export interface WandererProps {
-  // Props obligatoires (inchangées)
-  height: number;
-  parentRef: React.RefObject<HTMLElement | null>;
-  src: string;
-  width: number;
-
-  // Props optionnelles
-  alt?: string;
-
-  // Nouvelles props optionnelles
-  movement?: Partial<MovementConfig>;
-  mouseInteraction?: Partial<MouseInteractionConfig>;
-  animation?: Partial<AnimationConfig>;
-  bounce?: Partial<BounceConfig>;
-  visual?: Partial<VisualConfig>;
-  behavior?: Partial<BehaviorConfig>;
-  advanced?: Partial<AdvancedConfig>;
-  callbacks?: Partial<Callbacks>;
-}
+// Inject the spin keyframe CSS once when the module loads
+injectSpinKeyframe();
 
 const Wanderer: React.FC<WandererProps> = ({
   src,
@@ -118,7 +47,11 @@ const Wanderer: React.FC<WandererProps> = ({
   advanced = {},
   callbacks = {},
 }) => {
-  // Fusion avec les valeurs par défaut
+  // Validate critical props
+  const safeWidth = Math.max(0, width || 0);
+  const safeHeight = Math.max(0, height || 0);
+
+  // Merge with defaults
   const finalMovement = { ...defaultMovement, ...movement };
   const finalMouseInteraction = {
     ...defaultMouseInteraction,
@@ -131,29 +64,25 @@ const Wanderer: React.FC<WandererProps> = ({
   const finalAdvanced = { ...defaultAdvanced, ...advanced };
   const finalCallbacks = { ...defaultCallbacks, ...callbacks };
 
-  // Refs
   const wandererRef = useRef<HTMLImageElement>(null);
 
-  // Hook pour gérer l'état
   const state = useWandererState(finalMovement.baseSpeed);
 
-  // Hook pour l'initialisation
   useWandererInitialization({
     parentRef,
     wandererRef,
-    width,
-    height,
+    width: safeWidth,
+    height: safeHeight,
     startPosition: finalBehavior.startPosition,
     baseSpeed: finalMovement.baseSpeed,
     speedVariation: finalMovement.speedVariation,
     enableRandomSpeed: finalMovement.enableRandomSpeed,
-    initialized: state.initialized,
+    initializedRef: state.initializedRef,
     updatePosition: state.updatePosition,
     updateVelocity: state.updateVelocity,
     setInitialized: state.setInitialized,
   });
 
-  // Hook pour les événements
   useWandererEvents({
     parentRef,
     mouseInteractionEnabled: finalMouseInteraction.enabled,
@@ -162,32 +91,28 @@ const Wanderer: React.FC<WandererProps> = ({
     setHovered: state.setHovered,
   });
 
-  // Hook pour l'animation
   useWandererAnimation({
     parentRef,
     wandererRef,
-    width,
-    height,
+    width: safeWidth,
+    height: safeHeight,
     frameRate: finalAdvanced.animationFrameRate,
     enableDebug: finalAdvanced.enableDebug,
+    enablePerformanceMode: finalAdvanced.enablePerformanceMode,
 
-    // State
-    position: state.position,
-    velocity: state.velocity,
-    mousePosition: state.mousePosition,
-    lastEscapeTime: state.lastEscapeTime,
+    positionRef: state.positionRef,
+    velocityRef: state.velocityRef,
+    mousePositionRef: state.mousePositionRef,
+    lastEscapeTimeRef: state.lastEscapeTimeRef,
 
-    // Configurations
     movement: finalMovement,
     mouseInteraction: finalMouseInteraction,
     animation: finalAnimation,
     bounce: finalBounce,
     behavior: finalBehavior,
 
-    // Callbacks
     callbacks: finalCallbacks,
 
-    // State setters
     updatePosition: state.updatePosition,
     updateVelocity: state.updateVelocity,
     updateSpeed: state.updateSpeed,
@@ -195,7 +120,6 @@ const Wanderer: React.FC<WandererProps> = ({
     setSpinDuration: state.setSpinDurationState,
   });
 
-  // Styles dynamiques
   const dynamicStyles = generateAnimationStyles(
     finalAnimation.enableRotation,
     state.spinDuration,
@@ -206,7 +130,6 @@ const Wanderer: React.FC<WandererProps> = ({
     finalVisual.style
   );
 
-  // Ne pas rendre l'image si src est vide, null ou undefined
   if (!src) return null;
 
   return (
@@ -214,12 +137,12 @@ const Wanderer: React.FC<WandererProps> = ({
       ref={wandererRef}
       src={src}
       alt={alt}
-      width={width}
-      height={height}
+      width={safeWidth}
+      height={safeHeight}
       className={finalVisual.className}
       style={dynamicStyles}
     />
   );
 };
 
-export default Wanderer;
+export default React.memo(Wanderer);

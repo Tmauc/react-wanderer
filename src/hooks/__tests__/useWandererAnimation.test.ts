@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
+import React from "react";
 import { useWandererAnimation } from "../useWandererAnimation";
+import type { AnimationHookConfig } from "../useWandererAnimation";
 import * as physics from "../../utils/physics";
 import * as boundary from "../../utils/boundary";
 import * as mouseInteraction from "../../utils/mouseInteraction";
 import * as movement from "../../utils/movement";
 import * as animation from "../../utils/animation";
 
-// Mock des modules utilitaires
+// Mock utility modules
 vi.mock("../../utils/physics", () => ({
   getRandomVelocity: vi.fn(() => ({ dx: 1, dy: 1 })),
 }));
@@ -39,12 +41,12 @@ vi.mock("../../utils/animation", () => ({
   getRandomSpinDuration: vi.fn(() => 2),
 }));
 
-// Mock de setInterval et clearInterval
-const mockSetInterval = vi.fn();
-const mockClearInterval = vi.fn();
+// Mock requestAnimationFrame and cancelAnimationFrame
+const mockRAF = vi.fn();
+const mockCancelRAF = vi.fn();
 
-vi.stubGlobal("setInterval", mockSetInterval);
-vi.stubGlobal("clearInterval", mockClearInterval);
+vi.stubGlobal("requestAnimationFrame", mockRAF);
+vi.stubGlobal("cancelAnimationFrame", mockCancelRAF);
 
 describe("useWandererAnimation", () => {
   let mockParent: HTMLElement;
@@ -53,36 +55,36 @@ describe("useWandererAnimation", () => {
   let mockWandererRef: React.RefObject<HTMLImageElement>;
 
   beforeEach(() => {
-    // Mock des éléments DOM
     mockParent = document.createElement("div");
     mockWanderer = document.createElement("img");
     mockParentRef = { current: mockParent };
     mockWandererRef = { current: mockWanderer };
 
-    // Mock des propriétés
     Object.defineProperty(mockParent, "clientWidth", { value: 800 });
     Object.defineProperty(mockParent, "clientHeight", { value: 600 });
 
-    // Reset des mocks
-    mockSetInterval.mockClear();
-    mockClearInterval.mockClear();
+    mockRAF.mockClear();
+    mockCancelRAF.mockClear();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  const createMockConfig = (overrides = {}) => ({
+  const createMockConfig = (overrides = {}): AnimationHookConfig => ({
     parentRef: mockParentRef,
     wandererRef: mockWandererRef,
     width: 50,
     height: 50,
     frameRate: 60,
     enableDebug: false,
-    position: { x: 100, y: 100 },
-    velocity: { dx: 2, dy: 1 },
-    mousePosition: { x: 200, y: 200 },
-    lastEscapeTime: 0,
+    enablePerformanceMode: false,
+
+    positionRef: { current: { x: 100, y: 100 } } as React.RefObject<{ x: number; y: number }>,
+    velocityRef: { current: { dx: 2, dy: 1 } } as React.RefObject<{ dx: number; dy: number }>,
+    mousePositionRef: { current: { x: 200, y: 200 } } as React.RefObject<{ x: number; y: number }>,
+    lastEscapeTimeRef: { current: 0 } as React.RefObject<number>,
+
     movement: {
       baseSpeed: 3,
       speedVariation: 0.5,
@@ -130,73 +132,68 @@ describe("useWandererAnimation", () => {
     ...overrides,
   });
 
-  it("should not start animation when parent ref is null", () => {
+  it("should start animation with requestAnimationFrame", () => {
+    const config = createMockConfig();
+    renderHook(() => useWandererAnimation(config));
+
+    expect(mockRAF).toHaveBeenCalled();
+  });
+
+  it("should not update when parent ref is null", () => {
     const config = createMockConfig({
       parentRef: { current: null },
     });
 
     renderHook(() => useWandererAnimation(config));
 
-    // setInterval est appelé, mais la fonction passée ne fait rien
-    expect(mockSetInterval).toHaveBeenCalled();
-    // On vérifie que la fonction passée à setInterval ne fait rien
-    const move = mockSetInterval.mock.calls[0][0];
-    expect(() => move()).not.toThrow();
+    // Get the RAF callback and call it with enough elapsed time
+    const tick = mockRAF.mock.calls[0][0];
+    // First call registers the next frame
+    tick(0);
+    // Second call with enough time elapsed
+    const innerTick = mockRAF.mock.calls[1]?.[0] || tick;
+    innerTick(20);
+
+    expect(config.updatePosition).not.toHaveBeenCalled();
   });
 
-  it("should not start animation when wanderer ref is null", () => {
+  it("should not update when wanderer ref is null", () => {
     const config = createMockConfig({
       wandererRef: { current: null },
     });
 
     renderHook(() => useWandererAnimation(config));
 
-    // setInterval est appelé, mais la fonction passée ne fait rien
-    expect(mockSetInterval).toHaveBeenCalled();
-    const move = mockSetInterval.mock.calls[0][0];
-    expect(() => move()).not.toThrow();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const innerTick = mockRAF.mock.calls[1]?.[0] || tick;
+    innerTick(20);
+
+    expect(config.updatePosition).not.toHaveBeenCalled();
   });
 
-  it("should start animation with correct frame rate", () => {
-    const config = createMockConfig({
-      frameRate: 30, // 30 FPS = 33.33ms interval
-    });
-
-    renderHook(() => useWandererAnimation(config));
-
-    // Vérifie que l'intervalle est proche de 33.33ms
-    expect(mockSetInterval.mock.calls[0][1]).toBeCloseTo(1000 / 30, 1);
-  });
-
-  it("should call setInterval with correct parameters", () => {
-    const config = createMockConfig({
-      frameRate: 60, // 60 FPS = 16.67ms interval
-    });
-
-    renderHook(() => useWandererAnimation(config));
-
-    expect(mockSetInterval.mock.calls[0][1]).toBeCloseTo(1000 / 60, 1);
-  });
-
-  it("should clean up interval on unmount", () => {
+  it("should clean up animation on unmount", () => {
     const config = createMockConfig();
     const { unmount } = renderHook(() => useWandererAnimation(config));
 
     unmount();
 
-    expect(mockClearInterval).toHaveBeenCalled();
+    expect(mockCancelRAF).toHaveBeenCalled();
   });
 
-  it("should call update functions when animation runs", () => {
+  it("should call update functions when enough time has elapsed", () => {
     const config = createMockConfig();
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    // Get the tick function and simulate time passing
+    const tick = mockRAF.mock.calls[0][0];
+    // First tick sets lastFrameTime
+    tick(0);
+    // Get the next registered tick
+    const tick2 = mockRAF.mock.calls[1][0];
+    // Enough time for a frame at 60fps (~16.67ms)
+    tick2(20);
 
     expect(config.updatePosition).toHaveBeenCalled();
     expect(config.updateVelocity).toHaveBeenCalled();
@@ -208,11 +205,10 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
     expect(mockWanderer.style.left).toBeDefined();
     expect(mockWanderer.style.top).toBeDefined();
@@ -233,11 +229,10 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
     expect(config.callbacks.onCollision).toHaveBeenCalledWith("wall");
   });
@@ -256,11 +251,10 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
     expect(config.updateLastEscapeTime).toHaveBeenCalledWith(mockTime);
   });
@@ -286,11 +280,10 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
     expect(mockChangeSpeed).toHaveBeenCalled();
     expect(config.callbacks.onSpeedChange).toHaveBeenCalledWith(42);
@@ -310,11 +303,10 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
     expect(mockGetRandomSpinDuration).toHaveBeenCalledWith([1, 2, 3]);
     expect(config.setSpinDuration).toHaveBeenCalledWith(2.5);
@@ -344,11 +336,10 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
     expect(mockGetRandomVelocity).toHaveBeenCalled();
   });
@@ -376,11 +367,10 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
     expect(mockGetRandomVelocity).not.toHaveBeenCalled();
   });
@@ -394,11 +384,10 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining("Wanderer position:")
@@ -416,11 +405,10 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
-
-    // Exécuter la fonction d'animation
-    animationCallback();
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
     expect(consoleSpy).not.toHaveBeenCalled();
 
@@ -439,13 +427,11 @@ describe("useWandererAnimation", () => {
 
     renderHook(() => useWandererAnimation(config));
 
-    // Récupérer la fonction de callback passée à setInterval
-    const animationCallback = mockSetInterval.mock.calls[0][0];
+    const tick = mockRAF.mock.calls[0][0];
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    tick2(20);
 
-    // Exécuter la fonction d'animation
-    animationCallback();
-
-    // Vérifier que handleBoundaryCollision a été appelé avec les bonnes limites
     expect(mockHandleBoundaryCollision).toHaveBeenCalledWith(
       expect.any(Number),
       expect.any(Number),
@@ -455,5 +441,30 @@ describe("useWandererAnimation", () => {
       "bounce",
       true
     );
+  });
+
+  it("should skip frames in performance mode", () => {
+    const config = createMockConfig({
+      enablePerformanceMode: true,
+    });
+
+    renderHook(() => useWandererAnimation(config));
+
+    const tick = mockRAF.mock.calls[0][0];
+    // First tick (frame 0)
+    tick(0);
+    const tick2 = mockRAF.mock.calls[1][0];
+    // Second tick - should be skipped (odd frame)
+    tick2(20);
+
+    // In performance mode, first actual animation frame is skipped (counter starts at 0, increments to 1, 1%2 !== 0 so skip)
+    // The updatePosition should not be called on the first frame
+    expect(config.updatePosition).not.toHaveBeenCalled();
+
+    // Third tick - should execute (even frame)
+    const tick3 = mockRAF.mock.calls[2][0];
+    tick3(40);
+
+    expect(config.updatePosition).toHaveBeenCalled();
   });
 });

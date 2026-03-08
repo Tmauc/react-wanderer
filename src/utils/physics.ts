@@ -1,16 +1,8 @@
-// Utilitaires pour les calculs physiques et mathématiques
+import type { Velocity } from "../types";
 
-export interface Vector2D {
-  x: number;
-  y: number;
-}
+export type { Vector2D, Velocity } from "../types";
 
-export interface Velocity {
-  dx: number;
-  dy: number;
-}
-
-// Calcule la distance entre deux points
+// Calculate Euclidean distance between two points
 export const getDistance = (
   x1: number,
   y1: number,
@@ -20,7 +12,7 @@ export const getDistance = (
   return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 };
 
-// Génère un vecteur vitesse aléatoire
+// Generate a random velocity vector
 export const getRandomVelocity = (
   baseSpeed: number,
   speedVariation: number,
@@ -32,7 +24,6 @@ export const getRandomVelocity = (
       ? baseAngle + ((Math.random() - 0.5) * Math.PI) / 4
       : Math.random() * 2 * Math.PI;
 
-  // Si les changements aléatoires sont désactivés, utiliser la vitesse de base
   const finalSpeed = enableRandomSpeed
     ? baseSpeed + (Math.random() - 0.5) * 2 * speedVariation
     : baseSpeed;
@@ -43,7 +34,7 @@ export const getRandomVelocity = (
   };
 };
 
-// Applique la gravité à une vélocité
+// Apply gravity to a velocity
 export const applyGravity = (
   velocity: Velocity,
   gravityStrength: number
@@ -54,7 +45,7 @@ export const applyGravity = (
   };
 };
 
-// Applique la friction à une vélocité
+// Apply friction to a velocity
 export const applyFriction = (
   velocity: Velocity,
   frictionCoefficient: number
@@ -65,7 +56,7 @@ export const applyFriction = (
   };
 };
 
-// Calcule l'angle entre deux points
+// Calculate angle between two points
 export const getAngle = (
   x1: number,
   y1: number,
@@ -75,7 +66,7 @@ export const getAngle = (
   return Math.atan2(y2 - y1, x2 - x1);
 };
 
-// Calcule la vitesse d'échappement basée sur la distance
+// Calculate escape speed based on distance to cursor
 export const calculateEscapeSpeed = (
   baseSpeed: number,
   escapeSpeedMultiplier: number,

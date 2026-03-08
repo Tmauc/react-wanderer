@@ -2,19 +2,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 import Wanderer from "../Wanderer";
-import type { WandererProps } from "../Wanderer";
+import type { WandererProps } from "../../types";
 
-// Mock des hooks pour éviter les effets réels
+// Mock hooks to avoid real side effects
 vi.mock("../../hooks/useWandererState", () => ({
   useWandererState: () => ({
-    position: { x: 0, y: 0 },
-    velocity: { dx: 0, dy: 0 },
-    speed: 1,
+    positionRef: { current: { x: 0, y: 0 } },
+    velocityRef: { current: { dx: 0, dy: 0 } },
+    speedRef: { current: 1 },
+    mousePositionRef: { current: { x: 0, y: 0 } },
+    lastEscapeTimeRef: { current: 0 },
+    initializedRef: { current: false },
     spinDuration: 2,
-    mousePosition: { x: 0, y: 0 },
-    lastEscapeTime: 0,
     isHovered: false,
-    initialized: false,
     updatePosition: vi.fn(),
     updateVelocity: vi.fn(),
     updateSpeed: vi.fn(),
@@ -46,6 +46,7 @@ vi.mock("../../utils/animation", () => ({
   ) => ({
     ...customStyle,
   }),
+  injectSpinKeyframe: vi.fn(),
 }));
 
 const parentDiv = document.createElement("div");
@@ -109,7 +110,6 @@ describe("Wanderer component", () => {
   it("calls onCollision callback if provided", () => {
     const onCollision = vi.fn();
     render(<Wanderer {...baseProps} callbacks={{ onCollision }} />);
-    // Le callback est passé au hook, on vérifie qu'il est bien transmis
     expect(typeof onCollision).toBe("function");
   });
 
@@ -121,9 +121,7 @@ describe("Wanderer component", () => {
       />
     );
     const img = screen.getByAltText("Avatar");
-    // Simule un hover
     fireEvent.mouseEnter(img);
-    // Pas d'effet réel car hook mocké, mais le test vérifie que le composant accepte la prop
     expect(img).toBeInTheDocument();
   });
 
@@ -149,20 +147,17 @@ describe("Wanderer component", () => {
     expect(image).toHaveAttribute("alt", "Animated wanderer");
   });
 
-  // ===== TESTS DE PERFORMANCE =====
+  // ===== PERFORMANCE TESTS =====
   describe("Performance tests", () => {
     it("should not re-render when parent ref changes but component is not re-mounted", () => {
       const renderSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
       const { rerender } = render(<Wanderer {...baseProps} />);
 
-      // Premier rendu
       expect(renderSpy).not.toHaveBeenCalled();
 
-      // Re-render avec les mêmes props
       rerender(<Wanderer {...baseProps} />);
 
-      // Vérifier que le composant ne fait pas de rendu inutile
       expect(renderSpy).not.toHaveBeenCalled();
 
       renderSpy.mockRestore();
@@ -173,7 +168,6 @@ describe("Wanderer component", () => {
 
       const { rerender } = render(<Wanderer {...baseProps} />);
 
-      // Changements rapides de props
       for (let i = 0; i < 100; i++) {
         rerender(
           <Wanderer {...baseProps} visual={{ className: `class-${i}` }} />
@@ -183,22 +177,19 @@ describe("Wanderer component", () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
 
-      // Les re-renders doivent être rapides (< 100ms pour 100 changements)
       expect(duration).toBeLessThan(100);
     });
 
     it("should not create new objects on every render", () => {
       const { rerender } = render(<Wanderer {...baseProps} />);
 
-      // Re-render avec les mêmes props
       rerender(<Wanderer {...baseProps} />);
 
-      // Le composant doit être stable
       expect(screen.getByAltText("Avatar")).toBeInTheDocument();
     });
   });
 
-  // ===== TESTS DE CAS D'ERREUR =====
+  // ===== ERROR HANDLING TESTS =====
   describe("Error handling tests", () => {
     it("should handle missing src prop gracefully", () => {
       const consoleSpy = vi
@@ -210,7 +201,6 @@ describe("Wanderer component", () => {
 
       expect(() => {
         const { container } = render(<Wanderer {...propsWithoutSrc} />);
-        // Le composant ne doit rien rendre
         expect(container.querySelector("img")).toBeNull();
       }).not.toThrow();
 
@@ -229,7 +219,6 @@ describe("Wanderer component", () => {
         render(<Wanderer {...propsWithoutAlt} />);
       }).not.toThrow();
 
-      // Le composant doit se rendre avec la valeur par défaut pour alt
       const img = document.querySelector("img");
       expect(img).toBeInTheDocument();
       expect(img?.alt).toBe("Animated wanderer");
@@ -244,7 +233,6 @@ describe("Wanderer component", () => {
         render(<Wanderer {...baseProps} parentRef={nullParentRef} />);
       }).not.toThrow();
 
-      // Le composant doit toujours se rendre même avec une ref null
       expect(screen.getByAltText("Avatar")).toBeInTheDocument();
     });
 
@@ -255,22 +243,18 @@ describe("Wanderer component", () => {
         render(<Wanderer {...baseProps} parentRef={undefinedParentRef} />);
       }).not.toThrow();
 
-      // Le composant doit toujours se rendre même avec une ref undefined
       expect(screen.getByAltText("Avatar")).toBeInTheDocument();
     });
 
     it("should handle invalid width and height values", () => {
-      // Valeurs négatives
       expect(() => {
         render(<Wanderer {...baseProps} width={-10} height={-20} />);
       }).not.toThrow();
 
-      // Valeurs zero
       expect(() => {
         render(<Wanderer {...baseProps} width={0} height={0} />);
       }).not.toThrow();
 
-      // Valeurs très grandes
       expect(() => {
         render(<Wanderer {...baseProps} width={10000} height={10000} />);
       }).not.toThrow();
@@ -305,12 +289,10 @@ describe("Wanderer component", () => {
         );
       }).not.toThrow();
 
-      // Le composant doit toujours se rendre même avec des configs invalides
       expect(screen.getByAltText("Avatar")).toBeInTheDocument();
     });
 
     it("should handle missing required props gracefully", () => {
-      // Test avec des props manquantes - le composant devrait utiliser les valeurs par défaut
       const { container } = render(
         <Wanderer
           src="test-image.png"
@@ -323,7 +305,7 @@ describe("Wanderer component", () => {
       const image = container.querySelector("img");
       expect(image).toBeInTheDocument();
       expect(image).toHaveAttribute("src", "test-image.png");
-      expect(image).toHaveAttribute("alt", "Animated wanderer"); // Valeur par défaut
+      expect(image).toHaveAttribute("alt", "Animated wanderer");
     });
 
     it("should handle invalid image src", () => {
@@ -336,7 +318,6 @@ describe("Wanderer component", () => {
         render(<Wanderer {...invalidSrcProps} />);
       }).not.toThrow();
 
-      // Le composant doit se rendre même avec une URL d'image invalide
       const img = screen.getByAltText("Avatar") as HTMLImageElement;
       expect(img.src).toContain("invalid-image-url");
     });
@@ -350,9 +331,17 @@ describe("Wanderer component", () => {
 
       expect(() => {
         const { container } = render(<Wanderer {...emptyProps} />);
-        // Le composant ne doit rien rendre
         expect(container.querySelector("img")).toBeNull();
       }).not.toThrow();
+    });
+
+    it("should clamp negative width/height to 0", () => {
+      const { container } = render(
+        <Wanderer {...baseProps} width={-50} height={-30} />
+      );
+      const img = container.querySelector("img") as HTMLImageElement;
+      expect(img.width).toBe(0);
+      expect(img.height).toBe(0);
     });
   });
 });

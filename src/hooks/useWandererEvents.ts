@@ -33,7 +33,6 @@ export const useWandererEvents = (config: EventConfig) => {
       }
     };
 
-    // Ajout des écouteurs d'événements
     if (config.mouseInteractionEnabled) {
       parent.addEventListener("mousemove", handleMouseMove);
     }
@@ -43,18 +42,10 @@ export const useWandererEvents = (config: EventConfig) => {
       parent.addEventListener("mouseleave", handleMouseLeave);
     }
 
-    // Nettoyage des écouteurs d'événements
     return () => {
       parent.removeEventListener("mousemove", handleMouseMove);
       parent.removeEventListener("mouseenter", handleMouseEnter);
       parent.removeEventListener("mouseleave", handleMouseLeave);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    config.parentRef,
-    config.mouseInteractionEnabled,
-    config.hoverEffectsEnabled,
-    config.updateMousePosition,
-    config.setHovered,
-  ]);
+  }, [config]);
 };

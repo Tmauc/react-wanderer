@@ -1,29 +1,29 @@
-export interface AnimationConfig {
-  enableRotation?: boolean;
-  rotationDurations?: number[];
-  rotationChangeFrequency?: number;
-  enableSpinVariation?: boolean;
-}
+import type React from "react";
 
-export interface VisualConfig {
-  className?: string;
-  style?: React.CSSProperties;
-  enableHoverEffects?: boolean;
-  hoverScale?: number;
-  transitionDuration?: number;
-}
+// Inject the spin keyframe CSS into the document (idempotent)
+const SPIN_STYLE_ID = "react-wanderer-spin-keyframe";
 
-// Change la vitesse de rotation aléatoirement
+export const injectSpinKeyframe = (): void => {
+  if (typeof document === "undefined") return;
+  if (document.getElementById(SPIN_STYLE_ID)) return;
+
+  const style = document.createElement("style");
+  style.id = SPIN_STYLE_ID;
+  style.textContent = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+  document.head.appendChild(style);
+};
+
+// Pick a random spin duration from the configured list
 export const getRandomSpinDuration = (rotationDurations: number[]): number => {
   if (rotationDurations.length === 0) {
-    return 1; // Valeur par défaut si le tableau est vide
+    return 1;
   }
   return rotationDurations[
     Math.floor(Math.random() * rotationDurations.length)
   ];
 };
 
-// Génère les styles d'animation CSS
+// Generate CSS animation styles for the wanderer element
 export const generateAnimationStyles = (
   enableRotation: boolean,
   spinDuration: number,
@@ -47,7 +47,6 @@ export const generateAnimationStyles = (
     ...customStyle,
   };
 
-  // Styles d'animation de rotation (CSS pur)
   if (enableRotation) {
     baseStyles.animation = `spin ${spinDuration}s linear infinite`;
   }
@@ -55,7 +54,7 @@ export const generateAnimationStyles = (
   return baseStyles;
 };
 
-// Vérifie si un changement de rotation doit avoir lieu
+// Check if a spin speed change should occur (probabilistic)
 export const shouldChangeSpinSpeed = (
   rotationChangeFrequency: number
 ): boolean => {

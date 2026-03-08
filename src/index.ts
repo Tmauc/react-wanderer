@@ -1,4 +1,7 @@
+// Main component
 export { default as Wanderer } from "./components/Wanderer";
+
+// Types (public API)
 export type {
   WandererProps,
   MovementConfig,
@@ -9,16 +12,20 @@ export type {
   BehaviorConfig,
   AdvancedConfig,
   Callbacks,
-} from "./components/Wanderer";
+  Velocity,
+  Vector2D,
+  MousePosition,
+  BoundaryResult,
+} from "./types";
 
-export * from "./utils/physics";
-export * from "./utils/boundary";
-export * from "./utils/mouseInteraction";
-export * from "./utils/animation";
-export * from "./utils/movement";
-export * from "./utils/defaults";
-
-export * from "./hooks/useWandererState";
-export * from "./hooks/useWandererInitialization";
-export * from "./hooks/useWandererEvents";
-export * from "./hooks/useWandererAnimation";
+// Default configurations (useful for consumers extending defaults)
+export {
+  defaultMovement,
+  defaultMouseInteraction,
+  defaultAnimation,
+  defaultBounce,
+  defaultVisual,
+  defaultBehavior,
+  defaultAdvanced,
+  defaultCallbacks,
+} from "./utils/defaults";

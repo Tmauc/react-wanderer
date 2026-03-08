@@ -6,57 +6,57 @@ describe("useWandererState", () => {
   it("should initialize with correct default values", () => {
     const { result } = renderHook(() => useWandererState(5));
 
-    expect(result.current.position).toEqual({ x: 0, y: 0 });
-    expect(result.current.velocity).toEqual({ dx: 0, dy: 0 });
-    expect(result.current.speed).toBe(5);
+    expect(result.current.positionRef.current).toEqual({ x: 0, y: 0 });
+    expect(result.current.velocityRef.current).toEqual({ dx: 0, dy: 0 });
+    expect(result.current.speedRef.current).toBe(5);
     expect(result.current.spinDuration).toBe(2);
-    expect(result.current.mousePosition).toEqual({ x: 0, y: 0 });
-    expect(result.current.lastEscapeTime).toBe(0);
+    expect(result.current.mousePositionRef.current).toEqual({ x: 0, y: 0 });
+    expect(result.current.lastEscapeTimeRef.current).toBe(0);
     expect(result.current.isHovered).toBe(false);
-    expect(result.current.initialized).toBe(false);
+    expect(result.current.initializedRef.current).toBe(false);
   });
 
-  it("should update position correctly", () => {
+  it("should mutate position ref when updatePosition is called", () => {
     const { result } = renderHook(() => useWandererState(2));
 
     act(() => {
       result.current.updatePosition(100, 200);
     });
 
-    expect(result.current.updatePosition).toBeDefined();
+    expect(result.current.positionRef.current).toEqual({ x: 100, y: 200 });
   });
 
-  it("should update velocity correctly", () => {
+  it("should mutate velocity ref when updateVelocity is called", () => {
     const { result } = renderHook(() => useWandererState(2));
 
     act(() => {
       result.current.updateVelocity({ dx: 3, dy: 4 });
     });
 
-    expect(result.current.updateVelocity).toBeDefined();
+    expect(result.current.velocityRef.current).toEqual({ dx: 3, dy: 4 });
   });
 
-  it("should update speed correctly", () => {
+  it("should mutate speed ref when updateSpeed is called", () => {
     const { result } = renderHook(() => useWandererState(2));
 
     act(() => {
       result.current.updateSpeed(7);
     });
 
-    expect(result.current.updateSpeed).toBeDefined();
+    expect(result.current.speedRef.current).toBe(7);
   });
 
-  it("should update mouse position correctly", () => {
+  it("should mutate mouse position ref when updateMousePosition is called", () => {
     const { result } = renderHook(() => useWandererState(2));
 
     act(() => {
       result.current.updateMousePosition({ x: 150, y: 250 });
     });
 
-    expect(result.current.updateMousePosition).toBeDefined();
+    expect(result.current.mousePositionRef.current).toEqual({ x: 150, y: 250 });
   });
 
-  it("should update last escape time correctly", () => {
+  it("should mutate last escape time ref when updateLastEscapeTime is called", () => {
     const { result } = renderHook(() => useWandererState(2));
     const timestamp = Date.now();
 
@@ -64,10 +64,10 @@ describe("useWandererState", () => {
       result.current.updateLastEscapeTime(timestamp);
     });
 
-    expect(result.current.updateLastEscapeTime).toBeDefined();
+    expect(result.current.lastEscapeTimeRef.current).toBe(timestamp);
   });
 
-  it("should update hover state correctly", () => {
+  it("should update hover state correctly (triggers re-render)", () => {
     const { result } = renderHook(() => useWandererState(2));
 
     act(() => {
@@ -83,17 +83,17 @@ describe("useWandererState", () => {
     expect(result.current.isHovered).toBe(false);
   });
 
-  it("should update initialized state correctly", () => {
+  it("should mutate initialized ref when setInitialized is called", () => {
     const { result } = renderHook(() => useWandererState(2));
 
     act(() => {
       result.current.setInitialized(true);
     });
 
-    expect(result.current.setInitialized).toBeDefined();
+    expect(result.current.initializedRef.current).toBe(true);
   });
 
-  it("should update spin duration correctly", () => {
+  it("should update spin duration correctly (triggers re-render)", () => {
     const { result } = renderHook(() => useWandererState(2));
 
     act(() => {
@@ -103,10 +103,9 @@ describe("useWandererState", () => {
     expect(result.current.spinDuration).toBe(3.5);
   });
 
-  it("should maintain state between updates", () => {
+  it("should maintain all refs after multiple updates", () => {
     const { result } = renderHook(() => useWandererState(3));
 
-    // Set multiple values
     act(() => {
       result.current.updatePosition(50, 75);
       result.current.updateVelocity({ dx: 2, dy: 1 });
@@ -115,25 +114,23 @@ describe("useWandererState", () => {
       result.current.setInitialized(true);
     });
 
-    // Verify state setters are available
-    expect(result.current.updatePosition).toBeDefined();
-    expect(result.current.updateVelocity).toBeDefined();
-    expect(result.current.updateSpeed).toBeDefined();
+    expect(result.current.positionRef.current).toEqual({ x: 50, y: 75 });
+    expect(result.current.velocityRef.current).toEqual({ dx: 2, dy: 1 });
+    expect(result.current.speedRef.current).toBe(4);
     expect(result.current.isHovered).toBe(true);
-    expect(result.current.setInitialized).toBeDefined();
+    expect(result.current.initializedRef.current).toBe(true);
   });
 
-  it("should handle multiple rapid updates", () => {
+  it("should handle multiple rapid position updates (last value wins)", () => {
     const { result } = renderHook(() => useWandererState(1));
 
     act(() => {
-      // Multiple rapid position updates
       result.current.updatePosition(10, 20);
       result.current.updatePosition(15, 25);
       result.current.updatePosition(20, 30);
     });
 
-    expect(result.current.updatePosition).toBeDefined();
+    expect(result.current.positionRef.current).toEqual({ x: 20, y: 30 });
   });
 
   it("should handle negative values", () => {
@@ -144,14 +141,14 @@ describe("useWandererState", () => {
       result.current.updateVelocity({ dx: -3, dy: -4 });
     });
 
-    expect(result.current.updatePosition).toBeDefined();
-    expect(result.current.updateVelocity).toBeDefined();
+    expect(result.current.positionRef.current).toEqual({ x: -10, y: -20 });
+    expect(result.current.velocityRef.current).toEqual({ dx: -3, dy: -4 });
   });
 
   it("should handle zero values", () => {
     const { result } = renderHook(() => useWandererState(0));
 
-    expect(result.current.speed).toBe(0);
+    expect(result.current.speedRef.current).toBe(0);
 
     act(() => {
       result.current.updatePosition(0, 0);
@@ -159,22 +156,22 @@ describe("useWandererState", () => {
       result.current.updateSpeed(0);
     });
 
-    expect(result.current.updatePosition).toBeDefined();
-    expect(result.current.updateVelocity).toBeDefined();
-    expect(result.current.updateSpeed).toBeDefined();
+    expect(result.current.positionRef.current).toEqual({ x: 0, y: 0 });
+    expect(result.current.velocityRef.current).toEqual({ dx: 0, dy: 0 });
+    expect(result.current.speedRef.current).toBe(0);
   });
 
-  it("should provide all required state properties", () => {
+  it("should provide all required ref properties", () => {
     const { result } = renderHook(() => useWandererState(3));
 
-    expect(result.current).toHaveProperty("position");
-    expect(result.current).toHaveProperty("velocity");
-    expect(result.current).toHaveProperty("speed");
+    expect(result.current).toHaveProperty("positionRef");
+    expect(result.current).toHaveProperty("velocityRef");
+    expect(result.current).toHaveProperty("speedRef");
     expect(result.current).toHaveProperty("spinDuration");
-    expect(result.current).toHaveProperty("mousePosition");
-    expect(result.current).toHaveProperty("lastEscapeTime");
+    expect(result.current).toHaveProperty("mousePositionRef");
+    expect(result.current).toHaveProperty("lastEscapeTimeRef");
     expect(result.current).toHaveProperty("isHovered");
-    expect(result.current).toHaveProperty("initialized");
+    expect(result.current).toHaveProperty("initializedRef");
   });
 
   it("should provide all required setter functions", () => {
@@ -188,5 +185,29 @@ describe("useWandererState", () => {
     expect(typeof result.current.setHovered).toBe("function");
     expect(typeof result.current.setInitialized).toBe("function");
     expect(typeof result.current.setSpinDurationState).toBe("function");
+  });
+
+  it("should return stable setter function references across re-renders", () => {
+    const { result, rerender } = renderHook(() => useWandererState(2));
+
+    const firstUpdatePosition = result.current.updatePosition;
+    const firstUpdateVelocity = result.current.updateVelocity;
+
+    rerender();
+
+    expect(result.current.updatePosition).toBe(firstUpdatePosition);
+    expect(result.current.updateVelocity).toBe(firstUpdateVelocity);
+  });
+
+  it("should return stable ref objects across re-renders", () => {
+    const { result, rerender } = renderHook(() => useWandererState(2));
+
+    const firstPositionRef = result.current.positionRef;
+    const firstVelocityRef = result.current.velocityRef;
+
+    rerender();
+
+    expect(result.current.positionRef).toBe(firstPositionRef);
+    expect(result.current.velocityRef).toBe(firstVelocityRef);
   });
 });

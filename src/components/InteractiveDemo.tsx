@@ -15,7 +15,7 @@ import type {
   BehaviorConfig,
   AdvancedConfig,
   Callbacks,
-} from "./Wanderer";
+} from "../types";
 import { defaultConfig } from "../config/presets";
 
 export interface WandererConfig {
@@ -34,10 +34,8 @@ const InteractiveDemo: React.FC = () => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [activeMainTab, setActiveMainTab] = useState<MainTabType>("demo");
 
-  // État pour les configurations
   const [config, setConfig] = useState<WandererConfig>(defaultConfig);
 
-  // État pour les statistiques en temps réel
   const [stats, setStats] = useState({
     collisionCount: 0,
     currentSpeed: 2,
@@ -46,14 +44,13 @@ const InteractiveDemo: React.FC = () => {
     isHovered: false,
   });
 
-  // Callbacks pour les événements
   const callbacks: Callbacks = {
     onCollision: (type) => {
       setStats((prev) => ({
         ...prev,
         collisionCount: prev.collisionCount + 1,
       }));
-      console.log(`Collision détectée: ${type}`);
+      console.log(`Collision detected: ${type}`);
     },
     onSpeedChange: (newSpeed) => {
       setStats((prev) => ({ ...prev, currentSpeed: newSpeed }));
@@ -63,7 +60,6 @@ const InteractiveDemo: React.FC = () => {
     },
   };
 
-  // Mise à jour de la configuration
   const updateConfig = (
     section: keyof WandererConfig,
     newConfig: Partial<WandererConfig[keyof WandererConfig]>
@@ -74,7 +70,6 @@ const InteractiveDemo: React.FC = () => {
     }));
   };
 
-  // Application d'un preset
   const applyPreset = (presetConfig: WandererConfig) => {
     setConfig(presetConfig);
   };
@@ -90,7 +85,6 @@ const InteractiveDemo: React.FC = () => {
 
   return (
     <div className="h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 md:overflow-hidden space-y-4">
-      {/* Header fixe */}
       <div className="h-24 flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="!text-xl md:text-3xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text">
@@ -102,34 +96,26 @@ const InteractiveDemo: React.FC = () => {
         </div>
       </div>
 
-      {/* Contenu principal */}
       <div className="h-[calc(100vh-6rem)] flex flex-col space-y-4">
-        {/* Sélecteur de presets */}
         <PresetSelector onPresetSelect={applyPreset} />
         <div className="flex items-center px-6"></div>
 
-        {/* Zone principale */}
         <div className="flex-1 flex flex-col md:flex-row gap-6 px-6 pb-6 min-h-0">
-          {/* Zone de démo/code principale */}
           <div className="flex-1 flex flex-col">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 h-full flex flex-col p-4">
-              {/* Onglets principaux */}
               <Tabs
                 items={mainTabs}
                 activeTab={activeMainTab}
                 onTabChange={handleMainTabChange}
               />
 
-              {/* Contenu de l'onglet principal */}
               <div className="flex-1 p-4 min-h-0">
                 {activeMainTab === "demo" ? (
                   <div className="h-full flex flex-col">
-                    {/* Statistiques en temps réel */}
                     <div className="mb-4">
                       <LiveStats stats={stats} />
                     </div>
 
-                    {/* Zone de test */}
                     <div className="flex-1 min-h-0">
                       <div
                         ref={containerRef}
@@ -162,7 +148,6 @@ const InteractiveDemo: React.FC = () => {
             </div>
           </div>
 
-          {/* Panneau de contrôle */}
           <div className="w-80 flex-shrink-0">
             <ControlPanel config={config} onConfigChange={updateConfig} />
           </div>

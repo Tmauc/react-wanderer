@@ -7,14 +7,13 @@ import type {
   BehaviorConfig,
   AdvancedConfig,
   Callbacks,
-} from "../components/Wanderer";
+} from "../types";
 
-// Configuration par défaut (Wanderer classique)
 export const defaultMovement: Required<MovementConfig> = {
   baseSpeed: 2,
-  speedVariation: 0, // Pas de variation de vitesse
-  speedChangeFrequency: 0, // Pas de changement de vitesse
-  enableRandomSpeed: false, // Vitesse constante
+  speedVariation: 0,
+  speedChangeFrequency: 0,
+  enableRandomSpeed: false,
 };
 
 export const defaultMouseInteraction: Required<MouseInteractionConfig> = {
@@ -35,8 +34,8 @@ export const defaultAnimation: Required<AnimationConfig> = {
 
 export const defaultBounce: Required<BounceConfig> = {
   enabled: true,
-  bounceAngleVariation: 0, // Rebonds classiques sans variation
-  enableRandomBounce: false, // Pas de rebonds aléatoires
+  bounceAngleVariation: 0,
+  enableRandomBounce: false,
 };
 
 export const defaultVisual: Required<VisualConfig> = {
@@ -60,8 +59,6 @@ export const defaultAdvanced: Required<AdvancedConfig> = {
   animationFrameRate: 60,
   enableDebug: false,
   enablePerformanceMode: false,
-  collisionDetection: "mouse",
-  customCollisionElements: [],
 };
 
 export const defaultCallbacks: Required<Callbacks> = {

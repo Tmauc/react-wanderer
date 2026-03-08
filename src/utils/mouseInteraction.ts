@@ -1,21 +1,9 @@
-import type { Velocity } from "./physics";
+import type { Velocity, MouseInteractionConfig, MousePosition } from "../types";
 import { getDistance, getAngle, calculateEscapeSpeed } from "./physics";
 
-export interface MouseInteractionConfig {
-  enabled?: boolean;
-  detectionDistance?: number;
-  safetyZone?: number;
-  escapeSpeedMultiplier?: number;
-  escapeAngleVariation?: number;
-  throttleDelay?: number;
-}
+export type { MousePosition, MouseInteractionConfig } from "../types";
 
-export interface MousePosition {
-  x: number;
-  y: number;
-}
-
-// Gère la collision avec la souris
+// Handle mouse collision and escape behavior
 export const handleMouseCollision = (
   x: number,
   y: number,
@@ -24,7 +12,7 @@ export const handleMouseCollision = (
   baseSpeed: number,
   config: Required<MouseInteractionConfig>,
   lastEscapeTime: number,
-  onCollision: (type: "wall" | "mouse" | "element") => void
+  onCollision: (type: "wall" | "mouse") => void
 ): { velocity: Velocity; lastEscapeTime: number } => {
   if (!config.enabled) {
     return { velocity: currentVelocity, lastEscapeTime };
@@ -33,7 +21,7 @@ export const handleMouseCollision = (
   const distance = getDistance(x, y, mousePosition.x, mousePosition.y);
   const currentTime = Date.now();
 
-  // Zone de sécurité
+  // Safety zone: immediate strong escape
   if (distance < config.safetyZone) {
     const angle = getAngle(mousePosition.x, mousePosition.y, x, y);
     const escapeSpeed = baseSpeed * config.escapeSpeedMultiplier * 2;
@@ -49,7 +37,7 @@ export const handleMouseCollision = (
     };
   }
 
-  // Zone de collision normale
+  // Normal detection zone with throttling
   if (distance < config.detectionDistance) {
     if (currentTime - lastEscapeTime < config.throttleDelay) {
       return { velocity: currentVelocity, lastEscapeTime };
@@ -78,7 +66,7 @@ export const handleMouseCollision = (
   return { velocity: currentVelocity, lastEscapeTime };
 };
 
-// Calcule la position de la souris relative au conteneur
+// Calculate mouse position relative to the container
 export const calculateMousePosition = (
   event: MouseEvent,
   parentElement: HTMLElement
