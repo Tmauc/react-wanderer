@@ -22,34 +22,58 @@ export const useWandererInitialization = (config: InitializationConfig) => {
     const parent = config.parentRef.current;
     if (!parent || config.initialized) return;
 
-    // Calcul de la position de départ
-    const startPos = calculateStartPosition(
-      config.startPosition,
-      parent.clientWidth,
-      parent.clientHeight,
-      config.width,
-      config.height
-    );
+    const initialize = () => {
+      // Calcul de la position de départ
+      const startPos = calculateStartPosition(
+        config.startPosition,
+        parent.clientWidth,
+        parent.clientHeight,
+        config.width,
+        config.height
+      );
 
-    // Génération de la vélocité initiale
-    const initialVelocity = getRandomVelocity(
-      config.baseSpeed,
-      config.speedVariation,
-      undefined, // angle aléatoire
-      config.enableRandomSpeed // respecter la configuration
-    );
+      // Génération de la vélocité initiale
+      const initialVelocity = getRandomVelocity(
+        config.baseSpeed,
+        config.speedVariation,
+        undefined, // angle aléatoire
+        config.enableRandomSpeed // respecter la configuration
+      );
 
-    // Mise à jour de l'état
-    config.updatePosition(startPos.x, startPos.y);
-    config.updateVelocity(initialVelocity);
+      // Mise à jour de l'état
+      config.updatePosition(startPos.x, startPos.y);
+      config.updateVelocity(initialVelocity);
 
-    // Mise à jour du DOM
-    if (config.wandererRef.current) {
-      config.wandererRef.current.style.left = `${startPos.x}px`;
-      config.wandererRef.current.style.top = `${startPos.y}px`;
+      // Mise à jour du DOM
+      if (config.wandererRef.current) {
+        config.wandererRef.current.style.left = `${startPos.x}px`;
+        config.wandererRef.current.style.top = `${startPos.y}px`;
+      }
+
+      config.setInitialized(true);
+    };
+
+    // Parent déjà dimensionné -> init immédiate.
+    if (parent.clientWidth > 0 && parent.clientHeight > 0) {
+      initialize();
+      return;
     }
 
-    config.setInitialized(true);
+    // Sinon (parent en cours de layout / display:none), on attend qu'il ait une
+    // taille avant de placer le wanderer, pour éviter des positions négatives.
+    if (typeof ResizeObserver === "undefined") {
+      initialize();
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      if (parent.clientWidth > 0 && parent.clientHeight > 0) {
+        observer.disconnect();
+        initialize();
+      }
+    });
+    observer.observe(parent);
+    return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     config.parentRef,

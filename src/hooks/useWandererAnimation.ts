@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { Velocity } from "../utils/physics";
 import { getRandomVelocity } from "../utils/physics";
 import { handleBoundaryCollision } from "../utils/boundary";
@@ -10,6 +10,8 @@ import {
   getRandomSpinDuration,
 } from "../utils/animation";
 
+type RefObj<T> = { current: T };
+
 export interface AnimationConfig {
   parentRef: React.RefObject<HTMLElement | null>;
   wandererRef: React.RefObject<HTMLImageElement | null>;
@@ -18,11 +20,11 @@ export interface AnimationConfig {
   frameRate: number;
   enableDebug: boolean;
 
-  // State
-  position: { x: number; y: number };
-  velocity: Velocity;
-  mousePosition: { x: number; y: number };
-  lastEscapeTime: number;
+  // Refs d'état vivant (lues/écrites à chaque frame, indépendamment du render React)
+  positionRef: RefObj<{ x: number; y: number }>;
+  velocityRef: RefObj<Velocity>;
+  mousePositionRef: RefObj<{ x: number; y: number }>;
+  lastEscapeTimeRef: RefObj<number>;
 
   // Configurations
   movement: {
@@ -76,28 +78,36 @@ export interface AnimationConfig {
 }
 
 export const useWandererAnimation = (config: AnimationConfig) => {
+  // La config est recréée à chaque render (objets fusionnés, callbacks...). On la
+  // garde dans une ref pour que la boucle lise toujours la dernière version sans
+  // avoir à se reconstruire — donc des deps stables et un seul setInterval.
+  const configRef = useRef(config);
+  configRef.current = config;
+
   useEffect(() => {
     const frameInterval = 1000 / config.frameRate;
 
     const move = () => {
-      const parent = config.parentRef.current;
-      const wanderer = config.wandererRef.current;
+      const cfg = configRef.current;
+      const parent = cfg.parentRef.current;
+      const wanderer = cfg.wandererRef.current;
 
       if (!parent || !wanderer) return;
 
-      const maxX = parent.clientWidth - config.width;
-      const maxY = parent.clientHeight - config.height;
+      const maxX = parent.clientWidth - cfg.width;
+      const maxY = parent.clientHeight - cfg.height;
 
-      let { x, y } = config.position;
-      let { dx, dy } = config.velocity;
+      // Lecture de la position/vélocité VIVANTES (pas un snapshot de render).
+      let { x, y } = cfg.positionRef.current;
+      let { dx, dy } = cfg.velocityRef.current;
 
       // Application des effets physiques
       const physicsVelocity = applyPhysics(
         { dx, dy },
-        config.behavior.enableGravity,
-        config.behavior.gravityStrength,
-        config.behavior.enableFriction,
-        config.behavior.frictionCoefficient
+        cfg.behavior.enableGravity,
+        cfg.behavior.gravityStrength,
+        cfg.behavior.enableFriction,
+        cfg.behavior.frictionCoefficient
       );
 
       dx = physicsVelocity.dx;
@@ -113,8 +123,8 @@ export const useWandererAnimation = (config: AnimationConfig) => {
         { dx, dy },
         maxX,
         maxY,
-        config.behavior.boundaryBehavior,
-        config.bounce.enabled
+        cfg.behavior.boundaryBehavior,
+        cfg.bounce.enabled
       );
 
       x = boundaryResult.position.x;
@@ -123,96 +133,76 @@ export const useWandererAnimation = (config: AnimationConfig) => {
       dy = boundaryResult.velocity.dy;
 
       if (boundaryResult.rebounded) {
-        config.callbacks.onCollision("wall");
+        cfg.callbacks.onCollision("wall");
       }
 
       // Gestion de la collision avec la souris
       const mouseResult = handleMouseCollision(
         x,
         y,
-        config.mousePosition,
+        cfg.mousePositionRef.current,
         { dx, dy },
-        config.movement.baseSpeed,
-        config.mouseInteraction,
-        config.lastEscapeTime,
-        config.callbacks.onCollision
+        cfg.movement.baseSpeed,
+        cfg.mouseInteraction,
+        cfg.lastEscapeTimeRef.current,
+        cfg.callbacks.onCollision
       );
 
       dx = mouseResult.velocity.dx;
       dy = mouseResult.velocity.dy;
-      config.updateLastEscapeTime(mouseResult.lastEscapeTime);
+      cfg.updateLastEscapeTime(mouseResult.lastEscapeTime);
 
       // Si rebond avec rebonds aléatoires activés, recalcul de la direction
-      if (boundaryResult.rebounded && config.bounce.enableRandomBounce) {
+      if (boundaryResult.rebounded && cfg.bounce.enableRandomBounce) {
         const newVelocity = getRandomVelocity(
-          config.movement.baseSpeed,
-          config.movement.speedVariation,
+          cfg.movement.baseSpeed,
+          cfg.movement.speedVariation,
           boundaryResult.angle,
-          config.movement.enableRandomSpeed
+          cfg.movement.enableRandomSpeed
         );
         dx = newVelocity.dx;
         dy = newVelocity.dy;
       }
 
       // Changements aléatoires
-      if (shouldChangeSpeed(config.movement.speedChangeFrequency)) {
+      if (shouldChangeSpeed(cfg.movement.speedChangeFrequency)) {
         const newVelocity = changeSpeed(
           { dx, dy },
-          config.movement.baseSpeed,
-          config.movement.speedVariation,
-          config.movement.enableRandomSpeed,
-          config.callbacks.onSpeedChange
+          cfg.movement.baseSpeed,
+          cfg.movement.speedVariation,
+          cfg.movement.enableRandomSpeed,
+          cfg.callbacks.onSpeedChange
         );
         dx = newVelocity.dx;
         dy = newVelocity.dy;
       }
 
-      if (shouldChangeSpinSpeed(config.animation.rotationChangeFrequency)) {
+      if (shouldChangeSpinSpeed(cfg.animation.rotationChangeFrequency)) {
         const newDuration = getRandomSpinDuration(
-          config.animation.rotationDurations
+          cfg.animation.rotationDurations
         );
-        config.setSpinDuration(newDuration);
+        cfg.setSpinDuration(newDuration);
       }
 
-      // Mise à jour de l'état
-      config.updatePosition(x, y);
-      config.updateVelocity({ dx, dy });
+      // Mise à jour de l'état vivant
+      cfg.updatePosition(x, y);
+      cfg.updateVelocity({ dx, dy });
 
-      // Mise à jour du DOM
+      // Mise à jour du DOM (impérative, hors cycle de render)
       wanderer.style.left = `${x}px`;
       wanderer.style.top = `${y}px`;
 
-      config.callbacks.onPositionChange(x, y);
+      cfg.callbacks.onPositionChange(x, y);
 
-      if (config.enableDebug) {
+      if (cfg.enableDebug) {
         console.log(`Wanderer position: (${x.toFixed(2)}, ${y.toFixed(2)})`);
       }
     };
 
     const interval = setInterval(move, frameInterval);
     return () => clearInterval(interval);
+    // Deps stables : refs (identité figée) + frameRate (primitive). La boucle vit
+    // une seule fois et lit la config courante via configRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    config.parentRef,
-    config.wandererRef,
-    config.width,
-    config.height,
-    config.frameRate,
-    config.enableDebug,
-    config.movement,
-    config.mouseInteraction,
-    config.animation,
-    config.bounce,
-    config.behavior,
-    config.callbacks,
-    config.position,
-    config.velocity,
-    config.mousePosition,
-    config.lastEscapeTime,
-    config.updatePosition,
-    config.updateVelocity,
-    config.updateSpeed,
-    config.updateLastEscapeTime,
-    config.setSpinDuration,
-  ]);
+  }, [config.parentRef, config.wandererRef, config.frameRate]);
 };

@@ -11,6 +11,8 @@ export default defineConfig({
       rollupTypes: true,
     }),
   ],
+  // Ne pas copier les assets de démo (public/) dans le package publié.
+  publicDir: false,
   build: {
     lib: {
       entry: "./src/index.ts",

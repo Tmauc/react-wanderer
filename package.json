@@ -1,6 +1,6 @@
 {
   "name": "react-wanderer",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A React component that creates an animated object that moves randomly within its parent container, bounces off walls, and flees from mouse interactions with realistic physics",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",

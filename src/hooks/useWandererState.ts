@@ -57,7 +57,7 @@ export const useWandererState = (initialSpeed: number) => {
   };
 
   return {
-    // State
+    // State (snapshots — lus au render, pratiques pour le rendu/les tests)
     position: positionRef.current,
     velocity: velocityRef.current,
     speed: speedRef.current,
@@ -66,6 +66,14 @@ export const useWandererState = (initialSpeed: number) => {
     lastEscapeTime: lastEscapeTimeRef.current,
     isHovered,
     initialized: initializedRef.current,
+
+    // Refs vivantes — à utiliser dans la boucle d'animation pour lire la valeur
+    // courante (et non un snapshot figé entre deux renders).
+    positionRef,
+    velocityRef,
+    mousePositionRef,
+    lastEscapeTimeRef,
+    initializedRef,
 
     // Setters
     updatePosition,

@@ -17,6 +17,7 @@ export * from "./utils/mouseInteraction";
 export * from "./utils/animation";
 export * from "./utils/movement";
 export * from "./utils/defaults";
+export * from "./utils/keyframes";
 
 export * from "./hooks/useWandererState";
 export * from "./hooks/useWandererInitialization";

@@ -1,7 +1,8 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
 // Import des utilitaires
 import { generateAnimationStyles } from "../utils/animation";
+import { ensureSpinKeyframes } from "../utils/keyframes";
 import {
   defaultMovement,
   defaultMouseInteraction,
@@ -134,6 +135,11 @@ const Wanderer: React.FC<WandererProps> = ({
   // Refs
   const wandererRef = useRef<HTMLImageElement>(null);
 
+  // Keyframe `spin` auto-suffisant (n'écrase rien si déjà présent)
+  useEffect(() => {
+    if (finalAnimation.enableRotation) ensureSpinKeyframes();
+  }, [finalAnimation.enableRotation]);
+
   // Hook pour gérer l'état
   const state = useWandererState(finalMovement.baseSpeed);
 
@@ -171,11 +177,11 @@ const Wanderer: React.FC<WandererProps> = ({
     frameRate: finalAdvanced.animationFrameRate,
     enableDebug: finalAdvanced.enableDebug,
 
-    // State
-    position: state.position,
-    velocity: state.velocity,
-    mousePosition: state.mousePosition,
-    lastEscapeTime: state.lastEscapeTime,
+    // Refs d'état vivant
+    positionRef: state.positionRef,
+    velocityRef: state.velocityRef,
+    mousePositionRef: state.mousePositionRef,
+    lastEscapeTimeRef: state.lastEscapeTimeRef,
 
     // Configurations
     movement: finalMovement,
